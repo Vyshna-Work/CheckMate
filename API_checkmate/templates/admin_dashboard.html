@@ -198,7 +198,29 @@
         <tbody id="sessions-body"></tbody>
       </table>
     </div>
+    <!-- ATTENDANCE SECTION -->
+    <h2>Attendance Logs</h2>
 
+    <div class="card">
+      <button class="refresh-btn" onclick="loadAttendance()">Refresh Attendance</button>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Log ID</th>
+            <th>Timestamp</th>
+            <th>Method</th>
+            <th>Status</th>
+            <th>User</th>
+            <th>Session</th>
+            <th>Date</th>
+            <th>Start</th>
+            <th>End</th>
+          </tr>
+        </thead>
+        <tbody id="attendance-body"></tbody>
+      </table>
+    </div>
   </div>
 
   <script>
@@ -345,13 +367,49 @@
         alert("Error: " + err.error);
       }
     }
+    // -----------------------------
+    // attendene logs
+    //------------------------------
+    async function loadAttendance() {
+    const res = await fetch('/admin/attendance', {
+      headers: { 'Admin-Key': ADMIN_KEY }
+    });
 
+    if (res.status === 401) {
+      alert("Unauthorized: Wrong Admin Key");
+      logout();
+      return;
+    }
+
+    const logs = await res.json();
+    const tbody = document.getElementById('attendance-body');
+    tbody.innerHTML = '';
+
+    logs.forEach(row => {
+      const tr = document.createElement('tr');
+
+      tr.innerHTML = `
+        <td>${row.log_id}</td>
+        <td>${row.timestamp}</td>
+        <td>${row.method}</td>
+        <td>${row.status}</td>
+        <td>${row.user_name}</td>
+        <td>${row.session_name || ''}</td>
+        <td>${row.date || ''}</td>
+        <td>${row.start_time || ''}</td>
+        <td>${row.end_time || ''}</td>
+      `;
+
+      tbody.appendChild(tr);
+    });
+    }
     // -----------------------------
     // AUTO LOAD ON PAGE START
     // -----------------------------
     window.onload = () => {
       loadUsers();
       loadSessions();
+      loadAttendance();
     };
   </script>
 
