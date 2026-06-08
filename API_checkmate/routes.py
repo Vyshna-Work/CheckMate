@@ -68,7 +68,14 @@ def register_user():
 
     if age < 10:
         return jsonify({"error": "User must be at least 10 years old"}), 400
+        
+    # validate if the username is already created:
+    db_path = current_app.config["CHECKMATE_DB_PATH"]
+    existing_user = get_user_by_name(db_path, name)
 
+    if existing_user:
+        return jsonify({"error": "Username already exists"}), 400
+        
     password_hash = generate_password_hash(password)
     ble_id = generate_ble_uuid()
     nfc_id = None
