@@ -133,6 +133,7 @@ export default function RegisterScreen({
       <TextInput
         style={styles.input}
         placeholder="Birthday (YYYY-MM-DD)"
+        placeholderTextColor="#888"
         value={birthday}
         onChangeText={setBirthday}
       />
