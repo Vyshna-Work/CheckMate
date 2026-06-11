@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 
 // Basic UI components from React Native
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 
 // Save user data after login
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -50,7 +50,7 @@ export default function SignInScreen({
     }
 
     try {
-      const response = await fetch("http://172.20.10.5:5000/auth/login", {
+      const response = await fetch("http://172.20.10.4:5000/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, password, device_id: deviceId }),
@@ -83,6 +83,15 @@ export default function SignInScreen({
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
+
+      {/* CheckMate logo */}
+      <View style={styles.logoContainer}>
+        <Image
+          source={require('./assets/logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </View>
 
       {/* Title */}
       <Text style={styles.title}>Sign In</Text>
@@ -178,6 +187,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'black',
     paddingVertical: 10,
+  },
+
+  logoContainer: {
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+
+  logo: {
+    width: 130,
+    height: 130,
   },
 
   button: {
