@@ -2,14 +2,15 @@
 import React, { useEffect, useState } from 'react';
 
 // Basic UI components
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   ActivityIndicator,
   PermissionsAndroid,
-  Platform
+  Platform,
+  Image,
 } from 'react-native';
 
 import { CommonActions } from '@react-navigation/native';
@@ -132,6 +133,13 @@ export default function HomeScreen({ navigation }: { navigation: HomeScreenNavig
   // Main UI
   return (
     <View style={styles.container}>
+      {/* CheckMate logo */}
+      <Image
+        source={require('./assets/logo.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
+
       <Text style={styles.title}>Welcome, {name}</Text>
 
       <Text style={styles.info}>Your BLE ID:</Text>
@@ -170,6 +178,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'white',
   },
+  logo: {
+    width: 130,
+    height: 130,
+    marginBottom: 20,
+  },
+
   title: {
     fontSize: 28,
     fontWeight: 'bold',
