@@ -62,10 +62,11 @@ function AppContent({ navigation }: { navigation: LandingScreenNavigationProp })
 
   return (
     <View style={styles.container}>
-      {/* App logo */}
+      {/* CheckMate logo */}
       <Image
-        source={{ uri: 'https://via.placeholder.com/150' }}
+        source={require('./assets/logo.png')}
         style={styles.logo}
+        resizeMode="contain"
       />
 
       {/* Button that takes user to registration page */}
