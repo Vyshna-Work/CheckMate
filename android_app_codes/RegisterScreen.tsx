@@ -2,13 +2,14 @@
 import React, { useState, useEffect } from 'react';
 
 // Basic React Native UI components
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Alert 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Image,
 } from 'react-native';
 
 // Navigation types
@@ -84,7 +85,7 @@ export default function RegisterScreen({
     }
 
     try {
-      const response = await fetch("http://172.20.10.5:5000/users/register", {
+      const response = await fetch("http://172.20.10.4:5000/users/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -117,6 +118,15 @@ export default function RegisterScreen({
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
+
+      {/* CheckMate logo */}
+      <View style={styles.logoContainer}>
+        <Image
+          source={require('./assets/logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </View>
 
       {/* Title */}
       <Text style={styles.title}>Create Account</Text>
@@ -252,5 +262,15 @@ const styles = StyleSheet.create({
   backText: {
     fontSize: 18,
     color: '#007bff',
+  },
+
+  logoContainer: {
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+
+  logo: {
+    width: 130,
+    height: 130,
   },
 });
