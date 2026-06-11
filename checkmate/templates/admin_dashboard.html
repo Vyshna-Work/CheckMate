@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CheckMate — Admin Dashboard</title>
+
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f2f5;
+      color: #333;
+      min-height: 100vh;
+    }
+
+    /* ── Top Nav Bar ── */
+    .navbar {
+      background: #2c3e50;
+      color: white;
+      padding: 0 30px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .navbar h1 {
+      font-size: 22px;
+      letter-spacing: 1px;
+    }
+
+    .navbar span {
+      font-size: 13px;
+      color: #95a5a6;
+      margin-left: 10px;
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    /* ── Auto-refresh indicator ── */
+    #refresh-status {
+      font-size: 12px;
+      color: #95a5a6;
+    }
+
+    /* ── Main Content ── */
+    .content {
+      max-width: 1200px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+
+    /* ── Stats Bar ── */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      border-top: 4px solid #3498db;
+    }
+
+    .stat-card.green  { border-top-color: #27ae60; }
+    .stat-card.orange { border-top-color: #e67e22; }
+    .stat-card.purple { border-top-color: #9b59b6; }
+    .stat-card.blue   { border-top-color: #3498db; }
+
+    .stat-card .stat-number {
+      font-size: 36px;
+      font-weight: bold;
+      color: #2c3e50;
+    }
+
+    .stat-card .stat-label {
+      font-size: 13px;
+      color: #7f8c8d;
+      margin-top: 4px;
+    }
+
+    /* ── Section Cards ── */
+    .section {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      margin-bottom: 30px;
+      overflow: hidden;
+    }
+
+    .section-header {
+      background: #2c3e50;
+      color: white;
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 16px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+
+    .section-body {
+      padding: 20px;
+    }
+
+    /* ── Buttons ── */
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: opacity 0.15s;
+    }
+
+    button:hover { opacity: 0.85; }
+
+    .btn-blue   { background: #3498db; color: white; }
+    .btn-grey   { background: #7f8c8d; color: white; }
+    .btn-red    { background: #e74c3c; color: white; }
+    .btn-green  { background: #27ae60; color: white; }
+    .btn-small  { padding: 5px 10px; font-size: 12px; }
+
+    /* ── Form ── */
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      color: #7f8c8d;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .form-group input {
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      width: 150px;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #3498db;
+    }
+
+    /* ── Tables ── */
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 16px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    thead th {
+      background: #ecf0f1;
+      color: #555;
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #f0f2f5;
+      vertical-align: middle;
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #fafbfc; }
+
+    /* ── Status Badges ── */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-present { background: #d5f5e3; color: #1e8449; }
+    .badge-late    { background: #fdebd0; color: #d35400; }
+    .badge-absent  { background: #fadbd8; color: #c0392b; }
+    .badge-ble     { background: #d6eaf8; color: #1a5276; }
+    .badge-nfc     { background: #e8daef; color: #6c3483; }
+    .badge-auto    { background: #e8e8e8; color: #555555; }
+
+    /* ── Config Table ── */
+    .config-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f2f5;
+      gap: 10px;
+    }
+
+    .config-row:last-child { border-bottom: none; }
+
+    .config-key {
+      font-weight: 600;
+      font-size: 14px;
+      flex: 1;
+    }
+
+    .config-desc {
+      font-size: 12px;
+      color: #7f8c8d;
+      flex: 2;
+    }
+
+    .config-value-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .config-value-group input {
+      width: 80px;
+      padding: 6px 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    /* ── Toast notification ── */
+    #toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: #2c3e50;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 999;
+      pointer-events: none;
+    }
+
+    #toast.show { opacity: 1; }
+    #toast.success { background: #27ae60; }
+    #toast.error   { background: #e74c3c; }
+
+    /* ── Empty state ── */
+    .empty {
+      text-align: center;
+      padding: 30px;
+      color: #95a5a6;
+      font-size: 14px;
+    }
+
+    /* ── Filter row ── */
+    .filter-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .filter-row select,
+    .filter-row input {
+      padding: 7px 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    @media (max-width: 700px) {
+      .stats-bar { grid-template-columns: repeat(3, 1fr); }
+      .form-row  { flex-direction: column; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── Navigation Bar ── -->
+  <nav class="navbar">
+    <div>
+      <strong>CheckMate</strong>
+      <span>Admin Dashboard</span>
+    </div>
+    <div class="nav-actions">
+      <span id="refresh-status"></span>
+      <button class="btn-blue" onclick="refreshAll()">↻ Refresh All</button>
+      <button class="btn-grey" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="content">
+
+    <!-- ── Stats Bar ── -->
+    <div class="stats-bar">
+      <div class="stat-card blue">
+        <div class="stat-number" id="stat-users">—</div>
+        <div class="stat-label">Registered Users</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-number" id="stat-sessions">—</div>
+        <div class="stat-label">Total Sessions</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-number" id="stat-present">—</div>
+        <div class="stat-label">Today's Check-ins</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-number" id="stat-late">—</div>
+        <div class="stat-label">Late Today</div>
+      </div>
+      <div class="stat-card red" style="border-top-color:#e74c3c">
+        <div class="stat-number" id="stat-absent">—</div>
+        <div class="stat-label">Absent Today</div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- USERS SECTION                             -->
+    <!-- ══════════════════════════════════════════ -->
+    <div class="section">
+      <div class="section-header">
+        👤 Users
+        <button class="btn-blue btn-small" onclick="loadUsers()">↻ Refresh</button>
+      </div>
+      <div class="section-body">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Birthday</th>
+                <th>BLE ID</th>
+                <th>NFC ID</th>
+                <th>Device ID</th>
+                <th>Registered</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="users-body">
+              <tr><td colspan="8" class="empty">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- ADD NFC-ONLY USER SECTION                 -->
+    <!-- ══════════════════════════════════════════ -->
+    <div class="section">
+      <div class="section-header">
+        🪪 Add NFC-Only User
+      </div>
+      <div class="section-body">
+        <p style="margin-bottom:14px;color:#555;font-size:14px">
+          For students without the mobile app. Fill in their details, scan their card, then create their account.
+        </p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+          <div>
+            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Full Name</label>
+            <input id="nfc_name" type="text" placeholder="e.g. John Smith" style="padding:10px;border:1px solid #ccc;border-radius:8px;font-size:14px;width:180px">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Birthday</label>
+            <input id="nfc_birthday" type="date" style="padding:10px;border:1px solid #ccc;border-radius:8px;font-size:14px">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">NFC Card UID</label>
+            <div style="display:flex;gap:6px">
+              <input id="nfc_uid" type="text" placeholder="Scan card to fill" readonly
+                style="padding:10px;border:1px solid #ccc;border-radius:8px;font-size:13px;font-family:monospace;width:220px;background:#f8f8f8">
+              <button class="btn-blue" onclick="scanCard('nfc_uid')" id="scan-btn-new">📡 Scan Card</button>
+            </div>
+          </div>
+          <button class="btn-green" onclick="createNfcUser()" style="height:42px">+ Create User</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SESSIONS SECTION                          -->
+    <!-- ══════════════════════════════════════════ -->
+    <div class="section">
+      <div class="section-header">
+        📅 Sessions
+        <button class="btn-blue btn-small" onclick="loadSessions()">↻ Refresh</button>
+      </div>
+      <div class="section-body">
+
+        <!-- Create session form -->
+        <div class="form-row">
+          <div class="form-group">
+            <label>Session Name</label>
+            <input id="s_name" placeholder="e.g. Week 3 Lab">
+          </div>
+          <div class="form-group">
+            <label>Date</label>
+            <input id="s_date" placeholder="YYYY-MM-DD" type="date">
+          </div>
+          <div class="form-group">
+            <label>Day</label>
+            <input id="s_day" placeholder="Monday">
+          </div>
+          <div class="form-group">
+            <label>Start Time</label>
+            <input id="s_start" placeholder="HH:MM" type="time">
+          </div>
+          <div class="form-group">
+            <label>End Time</label>
+            <input id="s_end" placeholder="HH:MM" type="time">
+          </div>
+          <div class="form-group">
+            <label>Late After</label>
+            <input id="s_late" placeholder="HH:MM" type="time">
+          </div>
+          <div class="form-group">
+            <label>&nbsp;</label>
+            <button class="btn-green" onclick="createSession()">+ Create Session</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Session Name</th>
+                <th>Date</th>
+                <th>Day</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Late After</th>
+                <th>Created</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="sessions-body">
+              <tr><td colspan="9" class="empty">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SESSION REPORT SECTION                    -->
+    <!-- ══════════════════════════════════════════ -->
+    <div class="section">
+      <div class="section-header">
+        📋 Session Report
+        <button class="btn-green btn-small" onclick="exportSessionCSV()" id="export-csv-btn" style="display:none">⬇ Export CSV</button>
+      </div>
+      <div class="section-body">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px">
+          <select id="report-session-select" style="padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:14px;min-width:200px">
+            <option value="">— Select a session —</option>
+          </select>
+          <button class="btn-blue" onclick="loadSessionReport()">View Report</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Status</th>
+                <th>Method</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody id="report-body">
+              <tr><td colspan="4" class="empty">Select a session to view the report.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- ATTENDANCE LOGS SECTION                   -->
+    <!-- ══════════════════════════════════════════ -->
+    <div class="section">
+      <div class="section-header">
+        ✅ Attendance Logs
+        <button class="btn-blue btn-small" onclick="loadAttendance()">↻ Refresh</button>
+      </div>
+      <div class="section-body">
+
+        <!-- Filters -->
+        <div class="filter-row">
+          <label style="font-size:13px; color:#555;">Filter:</label>
+          <select id="filter-status" onchange="applyFilters()">
+            <option value="">All Statuses</option>
+            <option value="PRESENT">Present</option>
+            <option value="LATE">Late</option>
+            <option value="ABSENT">Absent</option>
+          </select>
+          <select id="filter-method" onchange="applyFilters()">
+            <option value="">All Methods</option>
+            <option value="BLE">BLE</option>
+            <option value="NFC">NFC</option>
+          </select>
+          <input id="filter-date" type="date" onchange="applyFilters()"
+                 title="Filter by date" style="width:150px;">
+          <input id="filter-name" type="text" placeholder="Search name..."
+                 oninput="applyFilters()" style="width:150px;">
+          <button class="btn-grey btn-small" onclick="clearFilters()">Clear</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Log ID</th>
+                <th>Timestamp</th>
+                <th>Student</th>
+                <th>Method</th>
+                <th>Status</th>
+                <th>Session</th>
+                <th>Date</th>
+                <th>Day</th>
+                <th>Session Start</th>
+                <th>Session End</th>
+              </tr>
+            </thead>
+            <tbody id="attendance-body">
+              <tr><td colspan="10" class="empty">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SYSTEM CONFIG SECTION                     -->
+    <!-- ══════════════════════════════════════════ -->
+    <div class="section">
+      <div class="section-header">
+        ⚙️ System Config
+        <button class="btn-blue btn-small" onclick="loadConfig()">↻ Refresh</button>
+      </div>
+      <div class="section-body" id="config-body">
+        <div class="empty">Loading...</div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- Toast notification -->
+  <div id="toast"></div>
+
+  <script>
+    // ══════════════════════════════════════════════
+    // ADMIN KEY — prompt once, store for the session
+    // ══════════════════════════════════════════════
+    let ADMIN_KEY = sessionStorage.getItem('ADMIN_KEY');
+
+    if (!ADMIN_KEY) {
+      ADMIN_KEY = prompt('Enter Admin Key:');
+      if (!ADMIN_KEY) {
+        alert('Admin Key required to use this dashboard.');
+        throw new Error('No admin key');
+      }
+      sessionStorage.setItem('ADMIN_KEY', ADMIN_KEY);
+    }
+
+    function logout() {
+      sessionStorage.removeItem('ADMIN_KEY');
+      location.reload();
+    }
+
+    // ══════════════════════════════════════════════
+    // TOAST HELPER
+    // Shows a small notification at the bottom right
+    // ══════════════════════════════════════════════
+    function toast(message, type = 'success') {
+      const el = document.getElementById('toast');
+      el.textContent = message;
+      el.className = 'show ' + type;
+      clearTimeout(el._timer);
+      el._timer = setTimeout(() => { el.className = ''; }, 3000);
+    }
+
+    // ══════════════════════════════════════════════
+    // FETCH HELPER
+    // Wraps all API calls with auth header + error handling
+    // ══════════════════════════════════════════════
+    async function apiFetch(url, options = {}) {
+      options.headers = {
+        ...(options.headers || {}),
+        'Admin-Key': ADMIN_KEY,
+        'Content-Type': 'application/json',
+      };
+      try {
+        const res = await fetch(url, options);
+        if (res.status === 401) {
+          toast('Wrong Admin Key — logged out.', 'error');
+          logout();
+          return null;
+        }
+        return res;
+      } catch (err) {
+        toast('Network error — is the Pi running?', 'error');
+        return null;
+      }
+    }
+
+    // ══════════════════════════════════════════════
+    // STATS BAR
+    // Pulls counts from users, sessions, attendance
+    // ══════════════════════════════════════════════
+    let _allAttendance = [];  // cached for filters + stats
+
+    function updateStats(users, sessions, logs) {
+      document.getElementById('stat-users').textContent    = users.length;
+      document.getElementById('stat-sessions').textContent = sessions.length;
+
+      // Count today's PRESENT and LATE
+      const today = new Date().toISOString().split('T')[0];
+      const todayLogs = logs.filter(l => l.date === today);
+      const presentToday = todayLogs.filter(l => l.status === 'PRESENT').length;
+      const lateToday    = todayLogs.filter(l => l.status === 'LATE').length;
+      const absentToday  = todayLogs.filter(l => l.status === 'ABSENT').length;
+
+      document.getElementById('stat-present').textContent = presentToday;
+      document.getElementById('stat-late').textContent    = lateToday;
+      document.getElementById('stat-absent').textContent  = absentToday;
+    }
+
+    // ══════════════════════════════════════════════
+    // USERS
+    // ══════════════════════════════════════════════
+    let _allUsers = [];
+
+    async function loadUsers() {
+      const res = await apiFetch('/admin/users');
+      if (!res) return;
+
+      _allUsers = await res.json();
+      const tbody = document.getElementById('users-body');
+
+      if (_allUsers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="empty">No users registered yet.</td></tr>';
+        return _allUsers;
+      }
+
+      tbody.innerHTML = _allUsers.map(u => `
+        <tr>
+          <td>${u.user_id}</td>
+          <td><strong>${u.name}</strong></td>
+          <td>${u.birthday || '—'}</td>
+          <td style="font-family:monospace;font-size:12px">${u.ble_id  || '—'}</td>
+          <td style="font-family:monospace;font-size:12px">${u.nfc_id  || '—'}</td>
+          <td style="font-family:monospace;font-size:12px">${u.device_id || '—'}</td>
+          <td>${u.created_at ? u.created_at.split(' ')[0] : '—'}</td>
+          <td style="display:flex;gap:6px;flex-wrap:wrap">
+            ${!u.nfc_id ? `<button class="btn-blue btn-small" onclick="linkNfc(${u.user_id}, '${u.name}')">Link NFC</button>` : ''}
+            <button class="btn-red btn-small"
+              onclick="deleteUser(${u.user_id}, '${u.name}')">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+
+      return _allUsers;
+    }
+
+    async function deleteUser(id, name) {
+      if (!confirm(`Delete user "${name}"? This cannot be undone.`)) return;
+
+      const res = await apiFetch('/admin/users/' + id, { method: 'DELETE' });
+      if (!res) return;
+
+      if (res.ok) {
+        toast(`User "${name}" deleted.`, 'success');
+        loadUsers();
+      } else {
+        const err = await res.json();
+        toast('Error: ' + err.error, 'error');
+      }
+    }
+
+    // ══════════════════════════════════════════════
+    // SESSIONS
+    // ══════════════════════════════════════════════
+    let _allSessions = [];
+
+    async function loadSessions() {
+      const res = await apiFetch('/admin/sessions');
+      if (!res) return;
+
+      _allSessions = await res.json();
+      const tbody = document.getElementById('sessions-body');
+
+      if (_allSessions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="empty">No sessions created yet.</td></tr>';
+        return _allSessions;
+      }
+
+      populateSessionDropdown(_allSessions);
+
+      tbody.innerHTML = _allSessions.map(s => `
+        <tr>
+          <td>${s.session_id}</td>
+          <td><strong>${s.session_name}</strong></td>
+          <td>${s.date}</td>
+          <td>${s.day}</td>
+          <td>${s.start_time}</td>
+          <td>${s.end_time}</td>
+          <td>${s.late_threshold}</td>
+          <td>${s.created_at ? s.created_at.split(' ')[0] : '—'}</td>
+          <td><button class="btn-red btn-small" onclick="deleteSession(${s.session_id}, '${s.session_name}')">Delete</button></td>
+        </tr>
+      `).join('');
+
+      return _allSessions;
+    }
+
+    async function createSession() {
+      // Auto-fill the day from the date input
+      const dateVal = document.getElementById('s_date').value;
+      if (dateVal) {
+        const dayName = new Date(dateVal + 'T12:00:00')
+          .toLocaleDateString('en-US', { weekday: 'long' });
+        document.getElementById('s_day').value = dayName;
+      }
+
+      const body = {
+        session_name:   document.getElementById('s_name').value.trim(),
+        date:           document.getElementById('s_date').value,
+        day:            document.getElementById('s_day').value.trim(),
+        start_time:     document.getElementById('s_start').value,
+        end_time:       document.getElementById('s_end').value,
+        late_threshold: document.getElementById('s_late').value,
+      };
+
+      // Validate all fields are filled
+      if (Object.values(body).some(v => !v)) {
+        toast('Please fill in all session fields.', 'error');
+        return;
+      }
+
+      const res = await apiFetch('/admin/sessions', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+      if (!res) return;
+
+      if (res.status === 201) {
+        toast('Session created!', 'success');
+        // Clear the form
+        ['s_name','s_date','s_day','s_start','s_end','s_late']
+          .forEach(id => document.getElementById(id).value = '');
+        loadSessions();
+      } else {
+        const err = await res.json();
+        toast('Error: ' + err.error, 'error');
+      }
+    }
+
+    async function deleteSession(id, name) {
+      if (!confirm(`Delete session "${name}"? This cannot be undone.`)) return;
+
+      const res = await apiFetch('/admin/sessions/' + id, { method: 'DELETE' });
+      if (!res) return;
+
+      if (res.ok) {
+        toast(`Session "${name}" deleted.`, 'success');
+        loadSessions();
+      } else {
+        const err = await res.json();
+        toast('Error: ' + err.error, 'error');
+      }
+    }
+
+    // ══════════════════════════════════════════════
+    // SESSION REPORT
+    // ══════════════════════════════════════════════
+    function populateSessionDropdown(sessions) {
+      const select = document.getElementById('report-session-select');
+      const current = select.value;
+      select.innerHTML = '<option value="">— Select a session —</option>';
+      sessions.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.session_id;
+        opt.textContent = `${s.session_name} (${s.date} ${s.start_time}–${s.end_time})`;
+        select.appendChild(opt);
+      });
+      if (current) select.value = current;
+    }
+
+    async function loadSessionReport() {
+      const sessionId = document.getElementById('report-session-select').value;
+      if (!sessionId) { toast('Please select a session first.', 'error'); return; }
+
+      const res = await apiFetch(`/admin/sessions/${sessionId}/report`);
+      if (!res) return;
+
+      const rows = await res.json();
+      _currentReport = rows;
+      _currentReportName = document.getElementById('report-session-select')
+        .selectedOptions[0].textContent.split('(')[0].trim().replace(/\s+/g, '_');
+      document.getElementById('export-csv-btn').style.display = 'inline-block';
+
+      const tbody = document.getElementById('report-body');
+
+      if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty">No students registered.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = rows.map(r => {
+        const statusClass = r.status === 'PRESENT' ? 'badge-present'
+                          : r.status === 'LATE'    ? 'badge-late'
+                          : r.status === 'ABSENT'  ? 'badge-absent'
+                          :                          'badge-auto';
+
+        const methodClass = r.method === 'BLE'  ? 'badge-ble'
+                          : r.method === 'NFC'  ? 'badge-nfc'
+                          : r.method === 'AUTO' ? 'badge-auto'
+                          :                       '';
+
+        return `
+          <tr>
+            <td><strong>${r.name}</strong></td>
+            <td><span class="badge ${statusClass}">${r.status}</span></td>
+            <td>${r.method !== '—' ? `<span class="badge ${methodClass}">${r.method}</span>` : '—'}</td>
+            <td>${r.timestamp}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    let _currentReport = [];
+    let _currentReportName = '';
+
+    function exportSessionCSV() {
+
+      const headers = ['Name', 'Status', 'Method', 'Timestamp'];
+      const rows = _currentReport.map(r =>
+        [r.name, r.status, r.method, r.timestamp].join(',')
+      );
+
+      const csv     = [headers.join(','), ...rows].join('\n');
+      const blob    = new Blob([csv], { type: 'text/csv' });
+      const url     = URL.createObjectURL(blob);
+      const a       = document.createElement('a');
+      a.href        = url;
+      a.download    = `${_currentReportName}_report.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ══════════════════════════════════════════════
+    // ATTENDANCE LOGS
+    // Cached in _allAttendance so filters are instant
+    // ══════════════════════════════════════════════
+    async function loadAttendance() {
+      const res = await apiFetch('/admin/attendance');
+      if (!res) return;
+
+      _allAttendance = await res.json();
+      applyFilters();
+      return _allAttendance;
+    }
+
+    function applyFilters() {
+      const statusFilter = document.getElementById('filter-status').value;
+      const methodFilter = document.getElementById('filter-method').value;
+      const dateFilter   = document.getElementById('filter-date').value;
+      const nameFilter   = document.getElementById('filter-name').value.toLowerCase().trim();
+
+      let rows = _allAttendance;
+
+      if (statusFilter) rows = rows.filter(r => r.status === statusFilter);
+      if (methodFilter) rows = rows.filter(r => r.method === methodFilter);
+      if (dateFilter)   rows = rows.filter(r => r.date   === dateFilter);
+      if (nameFilter)   rows = rows.filter(r => r.user_name.toLowerCase().includes(nameFilter));
+
+      renderAttendance(rows);
+    }
+
+    function clearFilters() {
+      ['filter-status','filter-method','filter-date','filter-name']
+        .forEach(id => document.getElementById(id).value = '');
+      applyFilters();
+    }
+
+    function renderAttendance(rows) {
+      const tbody = document.getElementById('attendance-body');
+
+      if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" class="empty">No attendance logs match the filter.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = rows.map(r => {
+        // Colour-coded status badge
+        const statusClass = r.status === 'PRESENT' ? 'badge-present'
+                          : r.status === 'LATE'    ? 'badge-late'
+                          :                          'badge-absent';
+
+        // Colour-coded method badge
+        const methodClass = r.method === 'BLE'  ? 'badge-ble'
+                          : r.method === 'NFC'  ? 'badge-nfc'
+                          :                       'badge-auto';
+
+        return `
+          <tr>
+            <td>${r.log_id}</td>
+            <td>${r.timestamp}</td>
+            <td><strong>${r.user_name}</strong></td>
+            <td><span class="badge ${methodClass}">${r.method}</span></td>
+            <td><span class="badge ${statusClass}">${r.status}</span></td>
+            <td>${r.session_name || '—'}</td>
+            <td>${r.date || '—'}</td>
+            <td>${r.day  || '—'}</td>
+            <td>${r.start_time || '—'}</td>
+            <td>${r.end_time   || '—'}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ══════════════════════════════════════════════
+    // SYSTEM CONFIG
+    // Shows current settings and lets admin edit them
+    // ══════════════════════════════════════════════
+    async function loadConfig() {
+      const res = await apiFetch('/config');
+      if (!res) return;
+
+      const settings = await res.json();
+      const container = document.getElementById('config-body');
+
+      container.innerHTML = settings.map(s => `
+        <div class="config-row">
+          <div class="config-key">${s.key}</div>
+          <div class="config-desc">${s.description || ''}</div>
+          <div class="config-value-group">
+            <input type="text" id="cfg_${s.key}" value="${s.value}">
+            <button class="btn-green btn-small"
+              onclick="saveConfig('${s.key}')">Save</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function saveConfig(key) {
+      const value = document.getElementById('cfg_' + key).value.trim();
+      if (!value) { toast('Value cannot be empty.', 'error'); return; }
+
+      const res = await apiFetch('/config/update', {
+        method: 'POST',
+        body: JSON.stringify({ key, value }),
+      });
+      if (!res) return;
+
+      if (res.ok) {
+        toast(`"${key}" updated to ${value}.`, 'success');
+      } else {
+        const err = await res.json();
+        toast('Error: ' + err.error, 'error');
+      }
+    }
+
+    // ══════════════════════════════════════════════
+    // REFRESH ALL
+    // Loads everything in parallel, then updates stats
+    // ══════════════════════════════════════════════
+    async function refreshAll() {
+      document.getElementById('refresh-status').textContent = 'Refreshing...';
+
+      const [users, sessions, logs] = await Promise.all([
+        loadUsers(),
+        loadSessions(),
+        loadAttendance(),
+        loadConfig(),
+      ]);
+
+      if (users && sessions && logs) {
+        updateStats(users, sessions, logs);
+      }
+
+      const now = new Date().toLocaleTimeString();
+      document.getElementById('refresh-status').textContent = `Last updated: ${now}`;
+    }
+
+    // ══════════════════════════════════════════════
+    // AUTO-REFRESH every 30 seconds
+    // ══════════════════════════════════════════════
+
+    // ══════════════════════════════════════════════
+    // NFC ENROLLMENT
+    // ══════════════════════════════════════════════
+
+    // scanCard — calls the Pi's NFC scan endpoint (waits up to 15s for a tap)
+    // Fills the target input with the card UID when detected.
+    async function scanCard(targetInputId, userId = null) {
+      const btn = userId
+        ? document.getElementById(`link-btn-${userId}`)
+        : document.getElementById('scan-btn-new');
+
+      const originalText = btn ? btn.textContent : '';
+      if (btn) { btn.textContent = '⏳ Waiting for tap...'; btn.disabled = true; }
+
+      toast('Tap the NFC card on the reader now...', 'info');
+
+      try {
+        const res = await apiFetch('/admin/nfc/scan');
+        if (!res) { if (btn) { btn.textContent = originalText; btn.disabled = false; } return; }
+
+        if (res.status === 200) {
+          const data = await res.json();
+          document.getElementById(targetInputId).value = data.uid;
+          toast(`Card detected: ${data.uid}`, 'success');
+        } else if (res.status === 408) {
+          toast('No card detected — please try again.', 'error');
+        } else {
+          const err = await res.json();
+          toast(err.error || 'Scan failed.', 'error');
+        }
+      } catch (e) {
+        toast('NFC scan error — is the Pi running?', 'error');
+      } finally {
+        if (btn) { btn.textContent = originalText; btn.disabled = false; }
+      }
+    }
+
+    // createNfcUser — creates a new NFC-only user from the dashboard form
+    async function createNfcUser() {
+      const name     = document.getElementById('nfc_name').value.trim();
+      const birthday = document.getElementById('nfc_birthday').value;
+      const nfc_id   = document.getElementById('nfc_uid').value.trim();
+
+      if (!name || !birthday) {
+        toast('Name and birthday are required.', 'error');
+        return;
+      }
+
+      const res = await apiFetch('/admin/users/create', {
+        method: 'POST',
+        body: JSON.stringify({ name, birthday, nfc_id: nfc_id || null }),
+      });
+      if (!res) return;
+
+      if (res.ok) {
+        toast(`User "${name}" created successfully!`, 'success');
+        document.getElementById('nfc_name').value    = '';
+        document.getElementById('nfc_birthday').value = '';
+        document.getElementById('nfc_uid').value      = '';
+        loadUsers();
+      } else {
+        const err = await res.json();
+        toast(err.error || 'Failed to create user.', 'error');
+      }
+    }
+
+    // linkNfc — opens an inline scan panel for an existing BLE user
+    async function linkNfc(userId, userName) {
+      const inputId = `link-uid-${userId}`;
+
+      // If panel already exists, remove it (toggle)
+      const existing = document.getElementById(`link-panel-${userId}`);
+      if (existing) { existing.remove(); return; }
+
+      // Find the user's row and append a panel below it
+      const tbody = document.getElementById('users-body');
+      const rows  = tbody.querySelectorAll('tr');
+      let targetRow = null;
+      rows.forEach(r => { if (r.innerHTML.includes(`deleteUser(${userId},`)) targetRow = r; });
+      if (!targetRow) return;
+
+      const panel = document.createElement('tr');
+      panel.id = `link-panel-${userId}`;
+      panel.innerHTML = `
+        <td colspan="8" style="background:#f0f4ff;padding:14px;border-radius:8px">
+          <strong>Link NFC card for ${userName}</strong>
+          <div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap">
+            <input id="${inputId}" type="text" placeholder="Scan card to fill" readonly
+              style="padding:9px;border:1px solid #ccc;border-radius:8px;font-size:13px;font-family:monospace;width:240px;background:#fff">
+            <button id="link-btn-${userId}" class="btn-blue btn-small" onclick="scanCard('${inputId}', ${userId})">📡 Scan Card</button>
+            <button class="btn-green btn-small" onclick="saveNfcLink(${userId})">✔ Save</button>
+            <button class="btn-red btn-small" onclick="document.getElementById('link-panel-${userId}').remove()">✕ Cancel</button>
+          </div>
+        </td>`;
+      targetRow.after(panel);
+    }
+
+    // saveNfcLink — saves the scanned UID to the existing user's account
+    async function saveNfcLink(userId) {
+      const nfc_id = document.getElementById(`link-uid-${userId}`).value.trim();
+      if (!nfc_id) { toast('Please scan a card first.', 'error'); return; }
+
+      const res = await apiFetch(`/admin/users/${userId}/link-nfc`, {
+        method: 'POST',
+        body: JSON.stringify({ nfc_id }),
+      });
+      if (!res) return;
+
+      if (res.ok) {
+        toast('NFC card linked successfully!', 'success');
+        document.getElementById(`link-panel-${userId}`)?.remove();
+        loadUsers();
+      } else {
+        const err = await res.json();
+        toast(err.error || 'Failed to link card.', 'error');
+      }
+    }
+
+    refreshAll();
+    setInterval(refreshAll, 30000);
+  </script>
+
+</body>
+</html>

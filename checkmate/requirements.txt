@@ -1,0 +1,24 @@
+# CheckMate — Python dependencies
+# Install with: pip3 install -r requirements.txt --break-system-packages
+#          or:  pip  install -r requirements.txt --break-system-packages
+
+# I2C communication (PN532 NFC reader)
+smbus2
+
+# BLE scanning (student phone detection via iBeacon)
+bleak
+
+# LCD display (20x4 via I2C PCF8574 backpack)
+RPLCD
+
+# GPIO control (buttons, RGB LED)
+RPi.GPIO
+
+# API server
+flask
+
+# Password hashing (comes with flask but listed explicitly)
+werkzeug
+
+# Load environment variables from .env file (admin key)
+python-dotenv
