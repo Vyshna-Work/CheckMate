@@ -6,7 +6,7 @@
 #          Handles menu navigation via the 4 colour buttons.
 #
 # LIBRARIES (Python 3 — install on Raspberry Pi):
-#   pip install RPLCD RPi.GPIO
+#   pip install RPLCD RPi.GPIO 
 # ============================================================
 
 import threading
