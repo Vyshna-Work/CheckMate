@@ -35,6 +35,10 @@ IBEACON_COMPANY_ID = 0x004C   # Apple company ID used by iBeacon standard
 IBEACON_TYPE       = 0x02     # iBeacon type identifier byte
 IBEACON_LENGTH     = 0x15     # Expected payload length (21 bytes)
 
+# UUIDs to permanently ignore (e.g. the Pi's own BLE adapter)
+IGNORED_UUIDS = {
+    "70b3d57e-d000-061e-0000-000000000000",
+}
 
 class BLEScannerModule:
     """
@@ -182,6 +186,10 @@ class BLEScannerModule:
         # This is the student's unique BLE ID stored in the database.
         proximity_uuid = self._extract_uuid(ibeacon_payload[2:18])
         if not proximity_uuid:
+            return
+        # Ignore blocklisted UUIDs (e.g. the Pi itself)
+        if proximity_uuid in IGNORED_UUIDS:
+            logger.debug(f"[BLE] Ignored blocklisted UUID: {proximity_uuid}")
             return
 
         # ── Step 4: RSSI threshold check ─────────────────
