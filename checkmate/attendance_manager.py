@@ -13,7 +13,7 @@ from datetime import datetime
 from database import (
     get_user_by_ble_id,
     get_user_by_nfc_id,
-    get_recent_attendance,
+    get_attendance_for_session,
     create_attendance_log,
     get_active_session,
     get_setting
@@ -27,18 +27,15 @@ logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────
 # NFC ENROLLMENT STATE
-# Used by the dashboard to capture the next card tap
-# instead of processing it as attendance.
 # ─────────────────────────────────────────────────────────
 
-_enrollment_active = False          # True while dashboard is waiting for a tap
-_enrollment_queue  = queue.Queue(maxsize=1)  # holds the captured UID
+_enrollment_active = False
+_enrollment_queue  = queue.Queue(maxsize=1)
 
 
 def start_nfc_enrollment():
     """Called by the API route — arms the system to capture the next card tap."""
     global _enrollment_active
-    # Clear any stale UID from a previous scan
     while not _enrollment_queue.empty():
         try:
             _enrollment_queue.get_nowait()
@@ -48,10 +45,7 @@ def start_nfc_enrollment():
 
 
 def get_enrolled_uid(timeout=15):
-    """
-    Blocks until a card is tapped or timeout expires.
-    Returns the UID string if successful, None if timed out.
-    """
+    """Blocks until a card is tapped or timeout expires."""
     global _enrollment_active
     try:
         uid = _enrollment_queue.get(timeout=timeout)
@@ -74,7 +68,7 @@ ui    = UIController()
 # ─────────────────────────────────────────────────────────
 
 DUPLICATE_WINDOW_MINUTES = 5
-RSSI_THRESHOLD           = -50
+RSSI_THRESHOLD           = -40
 COOLDOWN_SECONDS         = 3
 
 
@@ -89,8 +83,8 @@ def load_config():
         if dup:   DUPLICATE_WINDOW_MINUTES = int(dup)
         if cool:  COOLDOWN_SECONDS         = int(cool)
 
-        # sync live config so all modules see updated values immediately
-        runtime_config["rssi_threshold"]   = int(rssi)  if rssi else -50
+        # Sync live config so all modules see updated values immediately
+        runtime_config["rssi_threshold"]   = int(rssi)  if rssi else -40
         runtime_config["duplicate_window"] = int(dup)   if dup  else 5
         runtime_config["cooldown_seconds"] = int(cool)  if cool else 3
 
@@ -103,23 +97,17 @@ def load_config():
 # INTERNAL STATE
 # ─────────────────────────────────────────────────────────
 
-# Tracks the last time each BLE UUID or NFC UID was processed.
-# Key: identifier string (UUID or UID), Value: datetime of last seen.
-# Used by is_on_cooldown() to block rapid repeated check-ins.
 _last_seen = {}
 
 
 def is_on_cooldown(identifier):
     """
     Returns True if this identifier was seen too recently and should be ignored.
-    Side effect: if NOT on cooldown, records the current time as the last seen
-    time so the next call within COOLDOWN_SECONDS will be blocked.
     """
     if identifier in _last_seen:
         elapsed = (datetime.now() - _last_seen[identifier]).total_seconds()
         if elapsed < runtime_config["cooldown_seconds"]:
             return True
-    # Not on cooldown — stamp the time now so duplicates are blocked next
     _last_seen[identifier] = datetime.now()
     return False
 
@@ -144,8 +132,8 @@ def is_birthday(user):
 def process_check_in(user, method):
     """
     Handles the full check-in process.
-    1. Duplicate check
-    2. Find active session
+    1. Find active session
+    2. Duplicate check (per session — session A won't block session B)
     3. Determine PRESENT or LATE
     4. Log attendance
     5. LCD + audio feedback
@@ -154,15 +142,7 @@ def process_check_in(user, method):
     user_id   = user["user_id"]
     user_name = user["name"]
 
-    # Duplicate check
-    recent = get_recent_attendance(DB_PATH, user_id, runtime_config["duplicate_window"])
-    if recent:
-        ui.show_warning("Already checked in")
-        audio.play_warning()
-        logger.info(f"Duplicate blocked: {user_name}")
-        return
-
-    # Find active session
+    # Find active session FIRST — needed to scope the duplicate check
     now          = datetime.now()
     current_date = now.strftime("%Y-%m-%d")
     current_time = now.strftime("%H:%M")
@@ -172,6 +152,15 @@ def process_check_in(user, method):
         ui.show_error("No active session")
         audio.play_error()
         logger.info(f"No active session for: {user_name}")
+        return
+
+    # Duplicate check — scoped to this session only
+    # Prevents session A's record from blocking check-in to session B
+    recent = get_attendance_for_session(DB_PATH, user_id, session["session_id"])
+    if recent:
+        ui.show_warning("Already checked in")
+        audio.play_warning()
+        logger.info(f"Duplicate blocked: {user_name} already in session {session['session_name']}")
         return
 
     # Determine status
@@ -225,8 +214,6 @@ def on_nfc_detected(user_nfc_uid):
     """Called by NFC Reader when a card is tapped."""
     logger.info(f"[NFC] UID: {user_nfc_uid}")
 
-    # If the dashboard is waiting to enroll a card, capture the UID
-    # and skip normal attendance processing entirely.
     if _enrollment_active:
         try:
             _enrollment_queue.put_nowait(user_nfc_uid)
