@@ -1,212 +1,248 @@
-# CheckMate
-Project Innovate - Group Project
---------------------------------------------------------------------------------------------------------------------------------------------------
-CheckMate — Smart Attendance Monitoring System
-Project Status
+# Project Overview
 
-🚧 This project is currently in the design and prototyping phase.
-Software and hardware architecture have been completed, and implementation will begin in the next phase.
+CheckMate is a smart attendance system built for classroom use. It automatically detects students using Bluetooth Low Energy (BLE) from their Android phones and records attendance without any manual action. If BLE fails, students tap their university NFC card on the device as a backup. Check-in completes in under 3 seconds. The teacher does not need to do anything.
 
-Prototype designs, schematics, and technical design documents are included in the project documentation.
+The system runs on a Raspberry Pi 4 Model B and provides instant feedback through a 20×4 LCD screen, an RGB LED, and a speaker with personalised audio greetings. An admin dashboard is accessible from any browser on the same network.
 
---------------------------------------------------------------------------------------------------------------------------------------------------
+---
 
-Project Overview
+## Team — The Cyber Guardians
 
-CheckMate is a Smart Attendance Monitoring System designed to automate attendance tracking in educational environments. Traditional attendance methods such as roll calls and paper-based systems are time-consuming, inefficient, and prone to manipulation. This project proposes a hybrid system that combines a mobile application (BLE-based detection) with an NFC card backup system to create a reliable, automated attendance solution.
+| Name | Student No. | Role |
+|---|---|---|
+| Salman Al-Odani | 5638364 | Software & Hardware Specialist — Flask API, Android App |
+| Ondřej Urbánek | 5679664 | Hardware & Software Engineer — Wiring, Video, System integretion. UI Controller |
+| Aisha Binti Julkifli | 5639603 | Team Leader & Software Specialist — BLE Scanner Module, Group Portfolio|
+| Sana Safaei Bonab | 5723213 |Software Specialist| NFC Module, Logo design, group portfolio|
+| Sjonly Sherwood | 5653274 | Software Specialist — Audio Controller |
+| Vyshna Attadappa Puthanveettil | 5659426 |Software abd Daiunrbtsg Attendence manager, system inegretion assistance, and related documentation
 
-The system automatically detects when a student enters a classroom, records attendance in real time, and provides instant feedback through a display and audio system. The solution integrates embedded hardware, mobile software, and a database system to create a scalable and intelligent attendance platform.
+|
 
----------------------------------------------------------------------------------------------------------------------------------------------------
-Problem Statement
+---
 
-Current attendance systems face several major issues:
+## How It Works
 
-Manual attendance takes valuable class time
-Human errors in marking attendance
-Proxy attendance (students marking for others)
-No real-time attendance analytics
-Lack of automation in most systems
+1. Student walks into the classroom with the CheckMate Android app running in the background
+2. The Raspberry Pi detects the student's unique BLE iBeacon UUID automatically
+3. The Attendance Manager looks up the UUID in the database and determines PRESENT or LATE
+4. The LCD shows the student's name and status, the LED lights up, and a personalised greeting plays
+5. If BLE fails — student taps their NFC university card on the reader (same outcome)
+6. Teachers access the admin dashboard from any browser to view live attendance and reports
 
-CheckMate aims to solve these problems through automation, secure identification, and real-time data processing.
+---
 
---------------------------------------------------------------------------------------------------------------------------------------------------
-Project Objectives
+## Key Features
 
-Develop a mobile application for automatic attendance detection
-Implement real-time attendance recording
-Design a hardware-based NFC backup system
-Provide instant feedback via LCD and audio
-Track student punctuality and time spent in class
-Reduce proxy attendance and data manipulation
-Create a user-friendly and interactive system
+- **Automatic BLE check-in** — detects students passively via iBeacon, no action needed
+- **NFC card backup** — tap any registered MIFARE university card as a fallback
+- **Personalised audio greetings** — birthday mode, late arrival (teacher voices), first-to-arrive (team voices), invalid card
+- **LCD startup animation** — wave wipe effect and CheckMate logo on boot
+- **PRESENT / LATE tracking** — compares check-in time against the session's late threshold
+- **Duplicate prevention** — same student cannot check in twice per session
+- **Auto absent marking** — students who do not check in are marked ABSENT when the session ends
+- **Offline mode** — SQLite buffer stores records when Wi-Fi is unavailable
+- **Admin dashboard** — session management, live roster, session reports, CSV export
+- **Device lock security** — each student account is bound to one phone
 
---------------------------------------------------------------------------------------------------------------------------------------------------
-System Overview
+---
 
-How the System Works
-Student enters the classroom
-Mobile app broadcasts BLE identifier
-Raspberry Pi detects the BLE signal
-System verifies identity in database
-Attendance is recorded automatically
-LCD displays confirmation
-Speaker plays audio feedback
-If BLE fails → student taps NFC card
-Attendance recorded via NFC backup
+## Hardware
 
---------------------------------------------------------------------------------------------------------------------------------------------------
+| Component | Role |
+|---|---|
+| Raspberry Pi 4 Model B (4GB) | Central processing unit |
+| PN532 NFC Reader (I2C, address 0x24) | Manual card tap backup |
+| 20×4 LCD Display + PCF8574 I2C backpack (address 0x27) | Status display |
+| PAM8302 Amplifier + Speaker 4Ω 3W | Audio feedback |
+| RGB LED (common cathode) | Visual status indicator |
+| 4× Colour Push Buttons (Yellow×2, Green, Red) | Menu navigation |
+| Raspberry Pi Official USB-C PSU (5.1V 3A) | Power supply |
+| 3D Printed PLA Casing | Enclosure |
 
-Key Features
+### GPIO Pin Reference (BCM)
 
-Mobile Application :
+| GPIO | Component | Direction |
+|---|---|---|
+| GPIO 2 (SDA) | LCD + PN532 (shared I2C bus) | Bidirectional |
+| GPIO 3 (SCL) | LCD + PN532 (shared I2C bus) | Bidirectional |
+| GPIO 4 | Button — Up (Yellow) | Input, active LOW |
+| GPIO 9 | RGB LED — Green | Output |
+| GPIO 10 | RGB LED — Red | Output |
+| GPIO 11 | RGB LED — Blue | Output |
+| GPIO 17 | Button — Down (Yellow) | Input, active LOW |
+| GPIO 18 | PAM8302 Amplifier (A+) | PWM audio output |
+| GPIO 22 | Button — Select (Green) | Input, active LOW |
+| GPIO 27 | Button — Placeholder (Red) | Input, active LOW |
 
-Automatic attendance detection
-Secure login system
-Real-time data synchronization
-Attendance history view
+---
 
-Hardware System :
+## Software Modules
 
-NFC reader (backup check-in)
-LCD display
-Speaker for voice feedback
-LED status indicators
-Push-button menu interface
+| File | Description |
+|---|---|
+| `main.py` | Entry point — initialises DB, starts all threads |
+| `ble_scanner.py` | iBeacon BLE scanning via Bleak |
+| `nfc_reader.py` | PN532 polling via smbus2 |
+| `attendance_manager.py` | Core decision logic — validates, logs, triggers feedback |
+| `ui_controller.py` | 20×4 LCD control, button input, RGB LED |
+| `audio_controller.py` | Non-blocking audio playback via ffplay |
+| `app.py` + `routes.py` | Flask REST API server |
+| `database.py` | All SQLite CRUD operations |
+| `config.py` | Central GPIO, I2C, BLE, and DB configuration |
+| `uuid_generator.py` | Generates unique BLE UUIDs for new users |
 
-Smart Feedback System :
+---
 
-Voice greetings
-Visual confirmation
-LED status indicators
-Late/on-time notifications
+## Installation
 
-Attendance Tracking : 
+### Requirements
 
-Entry time recording
-Late arrival tracking
-Attendance history
-Semester reports
-Real-time dashboard
+- Raspberry Pi 4 running Raspberry Pi OS (64-bit Bookworm)
+- I2C enabled (`sudo raspi-config` → Interface Options → I2C → Enable)
+- Python 3 (included with Raspberry Pi OS)
 
---------------------------------------------------------------------------------------------------------------------------------------------------
-User Stories
+### Install Python dependencies
 
-The system is designed based on the following core user requirements:
+```bash
+pip install flask bleak smbus2 RPLCD RPi.GPIO werkzeug python-dotenv --break-system-packages
+sudo apt install ffmpeg
+```
 
-ID	User Story	Priority :
+### Enable PWM audio output
 
-US-01	Card-based attendance registration	High
-US-02	App-based attendance registration	High
-US-03	Late arrival tracking	High
-US-05	Real-time dashboard	High
-US-08	Fast identification (<3 sec)	High
-US-09	Duplicate check-in prevention	High
-US-04	Personal attendance history	Medium
-US-06	Semester attendance report	Medium
-US-10	Offline mode & data sync	Medium
-US-07	Manual attendance correction	Low
+Add the following line to `/boot/firmware/config.txt` and reboot:
 
-These user stories define the functional requirements and system behaviour.
+```
+dtoverlay=audremap,pins_18_19
+```
 
---------------------------------------------------------------------------------------------------------------------------------------------------
-System Architecture
+### Environment configuration
 
-Software Components :
- 
-BLE Scanner Module
-NFC Reader Module
-Attendance Manager
-LCD UI Controller
-Audio Controller
-REST API Server (Flask)
-SQLite Database
-Mobile Application (Android/iOS)
+Create a `.env` file in the project folder:
 
-Hardware Components :
+```
+ADMIN_KEY=your_secret_key_here
+```
 
-Raspberry Pi 4 Model B (central controller)
-PN532 NFC Reader
-20×4 LCD Display (I2C)
-Speaker + Amplifier
-LED Indicators
-Push Buttons
-Power Supply
-Perfboard (final build)
-3D Printed Casing
+### Audio files
 
---------------------------------------------------------------------------------------------------------------------------------------------------
-Technology Stack
+Place all `.m4a` audio files in a `sounds/` subfolder inside the project directory.
 
-Category	                            Technology
+---
 
-Embedded System	                      Raspberry Pi 4
-Programming Language	                Python
-Mobile App	                          Android & iOS
-Communication	                        Bluetooth Low Energy (BLE), NFC
-API	                                  Flask REST API
-Database	                            SQLite
-Hardware Interface	                  GPIO, I2C
-Audio	                                PWM / I2S
-Prototyping	                          Breadboard → Perfboard
-Enclosure	                            3D Printed PLA Case
+## Running the System
 
---------------------------------------------------------------------------------------------------------------------------------------------------
-Testing and Validation
+The system does not start automatically on power-on. Each time the device is powered up:
 
-The system will be tested using:
+1. Connect to the Raspberry Pi via SSH (e.g. using the VS Code Remote-SSH extension)
+2. Navigate to the project folder and activate the virtual environment:
 
-Functional Testing (BLE, NFC, database logging)
-Integration Testing (communication between modules)
-Performance Testing (multiple students entering at once)
-Validation Testing (compare with manual attendance)
-Reliability Testing (low battery, Bluetooth off, no internet)
-Security Testing (prevent duplicate or fake check-ins)
+```bash
+cd ~/checkmate
+source venv/bin/activate
+```
 
---------------------------------------------------------------------------------------------------------------------------------------------------
-Risk Assessment
+3. Start the system:
 
-Risk	                                 Mitigation
+```bash
+python main.py
+```
 
-BLE detection failure	                 NFC backup system
-App not working in background	         Device compatibility testing
-Incorrect attendance	                 Duplicate prevention + validation
-Privacy/security issues	               Secure database + unique UUID
-Integration issues	                   Test modules individually
-Project delays	                       Milestones and phased development
-Backup failure	                       Early backup testingRisk Assessment
+The LCD will play the CheckMate startup animation, then show `Status: scanning...` — the system is ready.
 
---------------------------------------------------------------------------------------------------------------------------------------------------
-Future Improvements
+To stop the system cleanly, press `Ctrl+C` in the terminal before unplugging the power.
 
-Face recognition integration
-Web dashboard for lecturers
-Cloud database
-Multi-classroom support
-iOS full support
-Analytics and attendance prediction
+---
 
---------------------------------------------------------------------------------------------------------------------------------------------------
-Team
+## Admin Dashboard
 
-Name	                                Role
-Slman & Aisha	                        Software
-Vyshna & Ondrej                       Hardware
-Sana & Sjonly                         Mobile App
-Whole Team                            Documentation
+Access the dashboard from any browser on the same network:
 
---------------------------------------------------------------------------------------------------------------------------------------------------
-Conclusion
+```
+http://<Pi-IP-address>:5000/admin/dashboard
+```
 
-CheckMate aims to modernize attendance systems by combining BLE-based automatic detection with an NFC backup system to ensure reliability. By integrating embedded hardware, mobile software, and a real-time database, the system provides a fast, secure, and scalable solution for educational institutions.
+Enter the `ADMIN_KEY` from your `.env` file when prompted.
 
---------------------------------------------------------------------------------------------------------------------------------------------------
-Acknowledgements
+**Dashboard features:**
+- Create and manage class sessions (session name, date, start/end time, late threshold)
+- Register students (via app or NFC-only)
+- Link NFC cards to existing student accounts
+- View live attendance roster during class
+- Generate session reports and export to CSV
+- View full attendance log with filters
+- Adjust system config (RSSI threshold, cooldown, duplicate window) without editing code
 
-This project was developed as part of an academic engineering project. Prototype designs, schematics and all the explained information are included in the technical design.
+---
 
---------------------------------------------------------------------------------------------------------------------------------------------------
+## Database
 
+Local SQLite database (`checkmate_api_test.db`) with four tables:
 
+| Table | Purpose |
+|---|---|
+| `users` | Student accounts — name, BLE UUID, NFC UID, birthday, device ID |
+| `sessions` | Class sessions — date, start/end time, late threshold |
+| `attendance` | Logs — user, session, timestamp, method (BLE/NFC/AUTO), status (PRESENT/LATE/ABSENT) |
+| `settings` | System config — RSSI threshold, duplicate window, cooldown |
 
+The database is created automatically on first startup.
 
+---
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/users/register` | Register a new student (returns BLE UUID) |
+| POST | `/auth/login` | Authenticate and bind device |
+| GET | `/attendance/user/<id>` | Get attendance history for a student |
+| GET | `/admin/users` | List all users (admin) |
+| DELETE | `/admin/users/<id>` | Delete a user (admin) |
+| POST | `/admin/sessions` | Create a class session (admin) |
+| GET | `/admin/sessions` | List all sessions (admin) |
+| GET | `/admin/sessions/<id>/report` | Full class roster with status (admin) |
+| DELETE | `/admin/sessions/<id>` | Delete a session (admin) |
+| GET | `/admin/attendance` | All attendance logs (admin) |
+| GET | `/config` | View system settings (admin) |
+| POST | `/config/update` | Update a system setting live (admin) |
+| GET | `/admin/nfc/scan` | Arm NFC reader for card enrollment (admin) |
+| POST | `/admin/users/create` | Create NFC-only user (admin) |
+| POST | `/admin/users/<id>/link-nfc` | Link NFC card to existing user (admin) |
+
+Admin endpoints require an `Admin-Key` header matching the value in `.env`.
+
+---
+
+## Cost
+
+| | |
+|---|---|
+| Hardware total (excl. VAT) | €127.20 |
+| VAT (21%) | €26.71 |
+| **Total per unit** | **€153.91** |
+
+---
+
+## UN SDG Alignment
+
+- **SDG 4 — Quality Education:** saves up to 20 hours of instructional time per classroom per semester by eliminating manual roll calls
+- **SDG 9 — Industry, Innovation and Infrastructure:** delivers Smart Campus technology for under €160 per unit vs €500–€2,000 for commercial systems
+- **SDG 17 — Partnerships for the Goals:** built entirely on open-source libraries with no vendor lock-in
+
+---
+
+## Future Improvements
+
+- Cloud database migration (Firebase / PostgreSQL) for campus-wide deployment
+- Multi-classroom support with unique Classroom ID per device
+- Advanced anti-spoofing via RSSI triangulation
+- Machine learning analytics to flag at-risk attendance patterns
+- Integration with school scheduling API for automated session creation
+
+---
+
+## Acknowledgements
+
+Developed as part of the AI Odyssey group project at NHL Stenden University of Applied Sciences, Emmen. Built entirely on open-source tools and libraries.
